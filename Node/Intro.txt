@@ -1,0 +1,24 @@
+
+
+abrir o console do git na pasta do projeto
+
+	>npm init 
+		package.json
+	>npm install --save react react-dom
+
+Instalar o webpack ambiente de dev
+	>npm install --save-dev webpack
+
+Criar as pastas e arquivos:
+	public >> index.html
+	webpack.config.js
+	app >> App.js
+
+Instalar babel
+	>npm install --save-dev babel-core babel-loader babel-preset-react
+
+Instalar werbpack global
+	>npm install webpack -g
+	
+Rodar webpack
+	>webpack
