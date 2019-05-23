@@ -2,22 +2,23 @@ pragma solidity ^0.5.0;
 
 contract LtD {
     
-    address donoContrato;
+    address payable donoContrato;
     string  nomeDoDono;
     uint    dataInicio;
     
-    struct Sorteios {
-        uint    numeroSorteado;
+    struct Sorteio {
         uint    dataSorteio;
+        uint    numeroSorteado;
         address remetente;
         uint    countPalpites;
     }
     
-    Sorteios[] sorteio;
+    Sorteio[] sorteios;
     
     mapping (address => uint) palpites; // faz mapeamento do numeroEntrada de cada usuário com o próprio usuário
-    address[] votador;
-    address[] ganhador;
+    
+    address[] palpiteiro;
+    address payable[] ganhadores;
     
     constructor( string memory _nome)  public {  // constructor pegara os dados de inicio e emitirá nas variáveis delcaradas 
         donoContrato = msg.sender;
@@ -57,11 +58,63 @@ contract LtD {
         
         // registra votos
         palpites[msg.sender] = votoEnviado;
-        votador.push(msg.sender);
+        palpiteiro.push(msg.sender);
+        
         emit PalpiteRegistrado(msg.sender, votoEnviado);
-        }
+    }
 
      
+     event SorteioPostado(uint resultado);
+     event PremiosEnviados(uint premioTotal, uint premioIndividual);
+     
     
+    function sortear() public apenasDono() returns (uint256 _numeroSorteado){
+         
+        require(now > dataInicio + 1 minutes, "O sorteio só pode ser veiot depois de um intervalo de 1 minuto");
+        require(palpiteiro.length >= 1 , "Um minimo de 1 pessoa é exigida para poder sortear");
+         
+        // sortear um número
+        uint256 numeroSorteado = uint256(keccak256(abi.encodePacked(blockhash(block.number-1))))/64+1;
+         
+        sorteios.push(Sorteio({
+             dataSorteio: now,
+             numeroSorteado: numeroSorteado,
+             remetente: msg.sender,
+             countPalpites: palpiteiro.length
+        }));
     
+        emit SorteioPostado(numeroSorteado);
+     
+        // procura os ganhadores
+        for(uint p = 0; p < palpiteiro.length; p++) {
+            address palpiteiro = palpiteiro[p];
+         
+            if (palpites[palpiteiro] == numeroSorteado) {
+                ganhadores.push(palpiteiro);
+            }
+            delete palpites[palpiteiro];
+        }
+     
+        uint premioTotal = address(this).balance;
+    
+        if (ganhadores.length > 0) {
+            uint premio = premioTotal / ganhadores.length;
+   
+            // envia os PremiosEnviados
+            for (uint p = 0; p < ganhadores.length; p++) {
+                ganhadores[p].transfer(premio);
+            }
+            emit PremiosEnviados(premioTotal, premio);
+        } 
+    
+        delete palpiteiro;
+        delete ganhadores;
+    
+        return numeroSorteado;
+    }
+    
+    function kill() public apenasDono(){
+        donoContrato.transfer(address(this).balance);
+        selfdestruct(donoContrato); 
+    }
 }
